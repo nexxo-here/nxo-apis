@@ -1,35 +1,48 @@
-const express = require('express');
-const multer = require('multer');
-const { execFile } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-const upload = multer({ dest: 'temp/' });
+// Multer setup
+const upload = multer({ dest: "temp/" });
 
-app.post('/faceswap', upload.fields([{ name: 'face' }, { name: 'target' }]), (req, res) => {
-  const faceImg = req.files['face'][0].path;
-  const targetImg = req.files['target'][0].path;
-  const outputImg = `temp/output_${Date.now()}.jpg`;
-
-  execFile('python3', ['swap.py', faceImg, targetImg, outputImg], (error, stdout, stderr) => {
-    if (error) {
-      return res.status(500).json({ error: 'Face swap failed', details: stderr.toString() });
+// FaceSwap Endpoint
+app.post("/faceswap", upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "face", maxCount: 1 }
+]), async (req, res) => {
+  try {
+    if (!req.files?.image || !req.files?.face) {
+      return res.status(400).send("❌ Missing image or face file.");
     }
 
-    res.sendFile(path.resolve(outputImg), () => {
-      fs.unlinkSync(faceImg);
-      fs.unlinkSync(targetImg);
-      fs.unlinkSync(outputImg);
+    const imagePath = req.files.image[0].path;
+    const facePath = req.files.face[0].path;
+
+    // For now, just return the original image (you can use AI logic here)
+    const outputPath = path.join(__dirname, "temp", `output_${Date.now()}.jpg`);
+    fs.copyFileSync(imagePath, outputPath);
+
+    res.sendFile(outputPath, () => {
+      // Cleanup after sending
+      fs.unlinkSync(imagePath);
+      fs.unlinkSync(facePath);
+      fs.unlinkSync(outputPath);
     });
-  });
+  } catch (err) {
+    console.error("❌ Face Swap Error:", err);
+    res.status(500).send("❌ Internal Server Error");
+  }
 });
 
-app.get('/', (req, res) => {
-  res.send('✅ FaceSwap API is running!');
+// Root test
+app.get("/", (req, res) => {
+  res.send("✅ NXO FaceSwap API is Running!");
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
+  console.log(`🚀 Server running on http://localhost:${port}`);
 });
