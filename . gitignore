@@ -1,0 +1,3 @@
+# temp ফোল্ডারে আপলোড হওয়া ফাইলগুলো GitHub এ যাবে না
+temp/*
+!temp/.gitkeep
